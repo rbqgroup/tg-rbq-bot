@@ -1,14 +1,31 @@
-import time
-import telepot # 將 telepot 這個模組匯入到 Python 中來
-from telepot.loop import MessageLoop
-from pprint import pprint
+from telegram import Update
+# pip uninstall python-telegram-bot telegram
+# pip install python-telegram-bot --upgrade
+from telegram.ext import CallbackContext
+from telegram.ext import Updater
+from telegram.ext import CommandHandler
+from telegram.ext import MessageHandler, Filters
+import logging
+updater = Updater(token='*', use_context=True)
+dispatcher = updater.dispatcher
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 
-bot = telepot.Bot('*** API ***') # 將bot這個在程式中使用的 variable 和你的 bot token 聯絡起來，在之後的程式中，每當要命令bot的時候可以直接 call bot 的 instance
-me = bot.getMe() # 在這裡你的bot的資訊將以一個 dictionary 的形式被 print 出來
-pprint(me)
+# 響應 /start
+def start(update: Update, context: CallbackContext):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="你好，这里是神楽坂小雅诗。我只为雅诗指定的群组提供服务。")
+start_handler = CommandHandler('start', start)
+dispatcher.add_handler(start_handler)
+updater.start_polling()
 
-# 接收訊息：設計上， telegram bot 是無法主動向使用者傳送訊息的（主要的目的是防止 spam )，所以你需要主動地透過指令以獲取使用者的資訊：
-response = bot.getUpdates()
-pprint(response)
+# 回顯收到的所有非命令訊息
+def echo(update: Update, context: CallbackContext):
+    context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
+echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
+dispatcher.add_handler(echo_handler)
 
-bot.sendMessage(-1, "复活") # -1:聊天ID 傳送訊息
+# 響應小寫轉大寫命令 caps
+def caps(update: Update, context: CallbackContext):
+    text_caps = ' '.join(context.args).upper()
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
+caps_handler = CommandHandler('caps', caps)
+dispatcher.add_handler(caps_handler)
