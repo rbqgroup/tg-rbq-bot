@@ -115,8 +115,23 @@ def echo(update: Update, context: CallbackContext):
     redis_conn.close()
 
 
-echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
-dispatcher.add_handler(echo_handler)
+def new_member(update, context):
+    """新成員加入"""
+    # print(update.message.from_user.username)
+    for member in update.message.new_chat_members:
+        # member: {'username': 'kagura_miyabi', 'last_name': 'みやび', 'first_name': '神楽', 'id': 1000005900, 'is_bot': False}
+        username = member.username
+        # alert = ' 你好， @'+username+' ，欢迎加入 '+update.message.chat.title+' ！下面，请发送「/verify 我是绒布球」来完成加群验证。' # TODO
+        alert = ' 你好， @'+username+' ，欢迎加入 '+update.message.chat.title+' ！'
+        print(alert)
+        context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
+
+
+echoHandler = MessageHandler(Filters.text & (~Filters.command), echo)
+dispatcher.add_handler(echoHandler)
+newMemberHandler = MessageHandler(
+    Filters.status_update.new_chat_members, new_member)
+updater.dispatcher.add_handler(newMemberHandler)
 
 
 def gag(update: Update, context: CallbackContext):
