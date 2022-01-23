@@ -1,7 +1,25 @@
+from pickle import FALSE
 from telegram import Update
 from telegram.ext import CallbackContext
+import sys
 import redis
 import json
+# redis 記錄格式： [[剩餘次數,用具名稱],[參與人員陣列]]
+
+def rpoint(redisConnect: redis.Redis, user:str, change:int) -> int:
+    """查詢或修改絨度"""
+    rediskey: str = 'rpt_' + str(user)
+    point = 0
+    rpointInfo = redisConnect.get(rediskey)
+    if rpointInfo != None and len(rpointInfo) > 0:
+        rpointInfo = rpointInfo.decode()
+        point = int(rpointInfo)
+    if change != 0:
+        point += change
+        if point < 0:
+            point = 0
+        redisConnect.set(rediskey,str(point))
+    return point
 
 
 def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool, c_CHAR: list[list[str]]):
@@ -19,7 +37,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         gagInfo = gagInfo.decode()
         if gagInfo == '0':
             redisConnect.close()
-            alert = toUser+' 刚刚挣脱口塞球！请给对方 1 分钟的休息时间！'
+            alert = toUser+' 刚刚挣脱口塞！请给对方 1 分钟的休息时间！'
             print(alert)
             context.bot.send_message(
                 chat_id=update.effective_chat.id, text=alert)
@@ -36,7 +54,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                 isRepeat = True
             names.append(name)
         if isRepeat:
-            alert = '抱歉， '+fromUser+' 。你已经为 '+toUser+' 佩戴过口球了，请在 '+toUser+' 挣脱后再试。'
+            alert = '抱歉， '+fromUser+' 。你已经为 '+toUser+' 佩戴过口塞了，请在 '+toUser+' 挣脱后再试。'
         else:
             gagTotal += 5
             infoArr[0] = gagTotal
@@ -61,11 +79,9 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
 
 
-def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool, c_CHAR: list[list[str]]):
+def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool, c_CHAR: list[list[str]]) -> bool:
     """檢查口球次數是否應該變化"""
     text: str = update.message.text
-    if len(text) == 0 or text[0] == '/':
-        return
     fromUser: str = '@'+update.message.from_user.username
     chatID: int = update.message.chat.id
     redisConnect = redis.Redis(connection_pool=redisPool0)
@@ -75,7 +91,7 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         gagInfo = gagInfo.decode()
         if gagInfo == '0':
             redisConnect.close()
-            return
+            return False
         infoArr = json.loads(gagInfo)
         gagTotal: int = int(infoArr[0])
         gagTotal -= 1
@@ -110,6 +126,7 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                 gagInfo = json.dumps(infoArr)
                 redisConnect.set(rediskey, gagInfo)
                 gagTotalStr: str = str(gagTotal)
+                rpoint(redisConnect, fromUser, 1)
                 print(fromUser+' -1 = '+gagTotalStr)
                 singleNum: str = gagTotalStr[-1]
                 if singleNum == '5' or singleNum == '0':
@@ -121,4 +138,7 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                 context.bot.delete_message(
                     chat_id=update.message.chat_id, message_id=update.message.message_id)
                 print(fromUser+' -0 = '+str(gagTotal))
+        redisConnect.close()
+        return True
     redisConnect.close()
+    return False

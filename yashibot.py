@@ -60,7 +60,11 @@ def echo(update: Update, context: CallbackContext):
     """收到的所有非命令文字訊息"""
     if update.message.chat == None or isPermission(update.message.chat.id) == False:
         return
-    d_gag.chk(update, context, redisPool0, c_CHAR)
+    text: str = update.message.text
+    if len(text) == 0 or text[0] == '/':
+        return
+    if d_gag.chk(update, context, redisPool0, c_CHAR):
+        return
     d_chat.chat(update, context, redisPool1)
 
 
