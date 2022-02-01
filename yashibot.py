@@ -46,7 +46,7 @@ def isPermission(chatID: int) -> bool:
 def start(update: Update, context: CallbackContext):
     """響應 /start"""
     fromUser: str = update.message.from_user.username
-    text: str = '你好， '+fromUser+' ！这里是神楽坂小雅诗。我只为雅诗指定的群组提供服务。'
+    text: str = '你好， '+fromUser+' ！\n我只为雅诗指定的群组提供服务。'
     print(text)
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
