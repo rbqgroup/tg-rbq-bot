@@ -36,19 +36,53 @@ def rpoint(redisConnect: redis.Redis, user: str, change: int) -> int:
     rpointInfo = redisConnect.get(rediskey)
     if rpointInfo != None and len(rpointInfo) > 0:
         rpointInfo = rpointInfo.decode()
-        print('get',rpointInfo)
         point = int(rpointInfo)
     if change != 0:
         point += change
         if point < 0:
             point = 0
-        print('set',str(point))
         redisConnect.set(rediskey, str(point))
     return point
 
 
+def enable(update: Update, context: CallbackContext, redisPool: redis.ConnectionPool, switchMode: bool):
+    """功能开关"""
+    fromUser: str = '@'+update.message.from_user.username
+    redisConnect = redis.Redis(connection_pool=redisPool)
+    rediskey: str = 'gagcan_' + str(fromUser)
+    enableInfo = redisConnect.get(rediskey)
+    enableMode = 0
+    alert = ''
+    if enableInfo != None and len(enableInfo) > 0:
+        enableInfo = enableInfo.decode()
+        enableMode = int(enableInfo)
+    enableAltStr = '被他人佩戴口塞。'
+    if enableMode < 0 or enableMode > 1:
+        redisConnect.close()
+        alert = fromUser+' 你被超级管理员禁止修改该开关。'
+        if enableMode < 0:
+            alert += '\n目前 '+fromUser+' 强制禁止'+enableAltStr
+        elif enableMode > 1:
+            alert += '\n目前 '+fromUser+' 强制允许'+enableAltStr
+        print(alert)
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text=alert)
+        return
+    if switchMode:
+        alert = '现已允许 '+fromUser+' '+enableAltStr+'\n该操作对所有本 bot 所在群组均有效。'
+        enableMode = 1
+    else:
+        alert = '现已禁止 '+fromUser+' '+enableAltStr+'\n仅对之后的佩戴操作生效，不会移除当前佩戴的口塞。'
+        enableMode = 0
+    redisConnect.set(rediskey, str(enableMode))
+    redisConnect.close()
+    print(alert)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id, text=alert)
+
+
 def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool, c_CHAR: list[list[str]]):
-    """為他人佩戴口球"""
+    """為他人佩戴"""
     argsLen = len(context.args)
     if argsLen == 0:
         return
@@ -60,19 +94,38 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     toUser: str = context.args[0]
     if toUser == 'help':
         return
-    if toUser[0] != '@':
+    elif toUser == 'on':
+        enable(update, context, redisPool0, True)
+        return
+    elif toUser == 'off':
+        enable(update, context, redisPool0, False)
+        return
+    elif toUser[0] != '@':
         return
     fromUser: str = '@'+update.message.from_user.username
     chatID: int = update.message.chat.id
     redisConnect = redis.Redis(connection_pool=redisPool0)
-    rediskey: str = 'gag_' + str(chatID) + '_' + str(toUser)
+    rediskey: str = 'gagcan_' + str(toUser)
+    gagInfo = redisConnect.get(rediskey)
+    isOK = False
+    if gagInfo != None and len(gagInfo) > 0:
+        if int(gagInfo.decode()) > 0:
+            isOK = True
+    if isOK == False:
+        redisConnect.close()
+        alert = fromUser+' 抱歉， '+toUser+' 目前禁止被其他人安装口塞。\n'+toUser+'必须使用 `/gag on` 指令来允许其他人这样做。'
+        print(alert)
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text=alert)
+        return
+    rediskey = 'gag_' + str(chatID) + '_' + str(toUser)
     gagInfo = redisConnect.get(rediskey)
     alert: str = ''
     if gagInfo != None and len(gagInfo) > 0:
         gagInfo = gagInfo.decode()
         if gagInfo == '0':
             redisConnect.close()
-            alert = toUser+' 刚刚挣脱口塞！请给对方 1 分钟的休息时间！'
+            alert = fromUser+' 抱歉， '+toUser+' 刚刚挣脱口塞！请给对方 1 分钟的休息时间！'
             print(alert)
             context.bot.send_message(
                 chat_id=update.effective_chat.id, text=alert)
@@ -119,11 +172,12 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                 chat_id=update.effective_chat.id, text=alert)
             return
         gagInfo = json.dumps([[selectGagAdd, gagName], [fromUser]])
-        redisConnect.set(rediskey, gagInfo,ex=600)
+        redisConnect.set(rediskey, gagInfo, ex=600)
         alert = fromUser+' 为 '+toUser+' 戴上了 '+gagName+' ！\n'+toUser+' 必须挣扎 '+str(selectGagAdd)+' 次才能挣脱它！\n其他人可以继续用同样指令加固 '+toUser+' 的 '+gagName+' （但同一个人只能在对方挣脱后才能再次为对方佩戴或加固）。\n' + \
             toUser+' 请注意：现在你只能发送包含如下文字的消息（单字或组合成词）「' + \
             ('、'.join(c_CHAR[0]))+'」，可以使用的标点限制为「' + \
-            ('、'.join(c_CHAR[1]))+'」，每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。'
+            ('、'.join(c_CHAR[1])) + \
+            '」，每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。'
     redisConnect.close()
     if fromUser == toUser:
         alert += '\n咦？！居然自己给自己戴？真是个可爱的绒布球呢！'
@@ -149,37 +203,27 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         gagTotal: int = int(infoArrInf[0])
         gagName: str = infoArrInf[1]
         names = infoArr[1]
-        gagTotal -= 1
-        if gagTotal <= 0:
-            redisConnect.set(rediskey, '0', ex=60)
-            point = rpoint(redisConnect, fromUser, 1)
-            print(fromUser+' -1 = '+str(gagTotal))
-            alert: str = fromUser + ' 挣脱了被 ' + \
-                (' 、 '.join(names))+' 佩戴或加固的 '+gagName + \
-                ' ！现在可以自由说话了！\n接下来 1 分钟为强制休息时间，期间不能再被佩戴任何口塞哦。\n现在 '+fromUser+' 的绒度升到了 '+str(point)+' ！'
-            print(alert)
-            context.bot.send_message(
-                chat_id=update.effective_chat.id, text=alert)
-        else:
-            isOK = True
-            charAll = c_CHAR[0] + c_CHAR[1]
-            for msgChar in text:
-                isInChar = False
-                for dbChar in (charAll):
-                    if msgChar == dbChar:
-                        isInChar = True
-                        break
-                if isInChar == False:
-                    isOK = False
+        isOK = True
+        charAll = c_CHAR[0] + c_CHAR[1]
+        for msgChar in text:
+            isInChar = False
+            for dbChar in (charAll):
+                if msgChar == dbChar:
+                    isInChar = True
                     break
-            if isOK:
-                infoArrInf[0] = gagTotal
-                infoArr[0] = infoArrInf
-                gagInfo = json.dumps(infoArr)
-                redisConnect.set(rediskey, gagInfo, ex=600)
-                gagTotalStr: str = str(gagTotal)
-                rpoint(redisConnect, fromUser, 1)
-                print(fromUser+' -1 = '+gagTotalStr)
+            if isInChar == False:
+                isOK = False
+                break
+        if isOK:
+            gagTotal -= 1
+            infoArrInf[0] = gagTotal
+            infoArr[0] = infoArrInf
+            gagInfo = json.dumps(infoArr)
+            redisConnect.set(rediskey, gagInfo, ex=600)
+            gagTotalStr: str = str(gagTotal)
+            rpoint(redisConnect, fromUser, 1)
+            print(fromUser+' -1 = '+gagTotalStr)
+            if gagTotal > 0:
                 singleNum: str = gagTotalStr[-1]
                 if singleNum == '5' or singleNum == '0':
                     alert = fromUser+' 加油！还有 '+gagTotalStr+' 次！'
@@ -187,9 +231,20 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                     context.bot.send_message(
                         chat_id=update.effective_chat.id, text=alert)
             else:
-                context.bot.delete_message(
-                    chat_id=update.message.chat_id, message_id=update.message.message_id)
-                print(fromUser+' -0 = '+str(gagTotal))
+                redisConnect.set(rediskey, '0', ex=60)
+                point = rpoint(redisConnect, fromUser, 1)
+                print(fromUser+' -1 = '+str(gagTotal))
+                alert: str = fromUser + ' 挣脱了被 ' + \
+                    (' 、 '.join(names))+' 佩戴或加固的 '+gagName + \
+                    ' ！现在可以自由说话了！\n接下来 1 分钟为强制休息时间，期间不能再被佩戴任何口塞哦。\n现在 ' + \
+                    fromUser+' 的绒度升到了 '+str(point)+' ！'
+                print(alert)
+                context.bot.send_message(
+                    chat_id=update.effective_chat.id, text=alert)
+        else:
+            context.bot.delete_message(
+                chat_id=update.message.chat_id, message_id=update.message.message_id)
+            print(fromUser+' -0 = '+str(gagTotal))
         redisConnect.close()
         return True
     redisConnect.close()
