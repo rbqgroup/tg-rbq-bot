@@ -174,10 +174,10 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         gagInfo = json.dumps([[selectGagAdd, gagName], [fromUser]])
         redisConnect.set(rediskey, gagInfo, ex=600)
         alert = fromUser+' 为 '+toUser+' 戴上了 '+gagName+' ！\n'+toUser+' 必须挣扎 '+str(selectGagAdd)+' 次才能挣脱它！\n其他人可以继续用同样指令加固 '+toUser+' 的 '+gagName+' （但同一个人只能在对方挣脱后才能再次为对方佩戴或加固）。\n' + \
-            toUser+' 请注意：现在你只能发送包含如下文字的消息（单字或组合成词）「' + \
-            ('、'.join(c_CHAR[0]))+'」，可以使用的标点限制为「' + \
+            toUser+' 请注意：\n现在你只能发送包含如下文字的消息（单字或组合成词）「' + \
+            ('、'.join(c_CHAR[0]))+'」，\n并且必须包含以下标点之一或多个（必须是中文标点）「' + \
             ('、'.join(c_CHAR[1])) + \
-            '」，每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。'
+            '」。\n示例：「咕呜…！」，「唔…啊…」。\n每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。'
     redisConnect.close()
     if fromUser == toUser:
         alert += '\n咦？！居然自己给自己戴？真是个可爱的绒布球呢！'
@@ -207,13 +207,31 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         charAll = c_CHAR[0] + c_CHAR[1]
         for msgChar in text:
             isInChar = False
-            for dbChar in (charAll):
+            for dbChar in charAll:
                 if msgChar == dbChar:
                     isInChar = True
                     break
             if isInChar == False:
                 isOK = False
                 break
+        if isOK:
+            inOK1 = False
+            inOK2 = False
+            for msgChar in text:
+                if inOK1 == False:
+                    for dbChar in c_CHAR[0]:
+                        if msgChar == dbChar:
+                            inOK1 = True
+                            break
+                if inOK2 == False:
+                    for dbChar in c_CHAR[1]:
+                        if msgChar == dbChar:
+                            inOK2 = True
+                            break
+                if inOK1 and inOK2:
+                    break
+            if inOK1 == False or inOK2 == False:
+                isOK = False
         if isOK:
             gagTotal -= 1
             infoArrInf[0] = gagTotal
