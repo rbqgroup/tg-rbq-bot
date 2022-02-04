@@ -1,0 +1,30 @@
+{
+    "update_id": 888888888,
+    "message": {
+        "delete_chat_photo": "False",
+        "text": "测试消息",
+        "message_id": 888,
+        "entities": [],
+        "channel_chat_created": "False",
+        "date": 8888888888,
+        "photo": [],
+        "chat": {
+            "type": "supergroup",
+            "title": "雅诗测试用组",
+            "id": -8888888888888
+        },
+        "new_chat_photo": [],
+        "caption_entities": [],
+        "new_chat_members": [],
+        "group_chat_created": "False",
+        "supergroup_chat_created": "False",
+        "from": {
+            "language_code": "zh-hant",
+            "last_name": "雅詩",
+            "is_bot": "False",
+            "first_name": "神楽坂",
+            "id": 88888888,
+            "username": "KagurazakaYashi"
+        }
+    }
+}

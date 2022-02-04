@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+from encodings import utf_8
 from pickle import FALSE
 from select import select
 from telegram import Update
@@ -5,6 +7,7 @@ from telegram.ext import CallbackContext
 import sys
 import redis
 import json
+import hashlib
 c_GAGTYPES = {
     '胡萝卜口塞': [1, 0],  # 名稱:[一次加多少,多少絨度可以被使用]
     '口塞球': [3, 10],
@@ -12,7 +15,7 @@ c_GAGTYPES = {
     '深喉口塞': [7, 500],
     '金属开口器': [9, 1000],
     '炮机口塞': [11, 1500],
-    '永久口塞': [65536, 65536],
+    '永久口塞': [65536, 4294967296],
 }
 # redis 記錄格式： [[剩餘次數,用具名稱],[參與人員陣列]]
 
@@ -81,6 +84,30 @@ def enable(update: Update, context: CallbackContext, redisPool: redis.Connection
         chat_id=update.effective_chat.id, text=alert)
 
 
+def help(update: Update, context: CallbackContext, c_CHAR: list[list[str]]):
+    f = open('help_gag.txt','r',encoding='utf_8')
+    txt = f.read()
+    f.close()
+    if hashlib.md5(txt.encode()).hexdigest() != 'da03afce333339838aaacf472be6d9e7':
+        txt = '文件保护功能检测到错误，请联系实例维护者。'
+    t1Arr: list[str] = c_CHAR[0]
+    t2Arr: list[str] = c_CHAR[1]
+    t1: str = '「'+('」、「'.join(t1Arr))+'」'
+    t2: str = '「'+('」、「'.join(t2Arr))+'」'
+    gagTypesKeys = list(c_GAGTYPES.keys())
+    gagInfos: list[str] = []
+    for gagName in gagTypesKeys:
+        gagInfoArr = c_GAGTYPES[gagName]
+        addNum: str = str(gagInfoArr[0])
+        canNum: str = str(gagInfoArr[1])
+        newLine: str = '「'+gagName+'」，需要「绒度」至少 '+canNum + \
+            ' 才能被用，每次「佩戴」或「加固」增加「挣扎」所需次数 '+addNum+' 次。'
+        gagInfos.append(newLine)
+    t3: str = '\n'.join(gagInfos)
+    txt = txt.replace('<t1>', t1).replace('<t2>', t2).replace('<t3>', t3)
+    context.bot.send_message(chat_id=update.effective_chat.id, text=txt)
+
+
 def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool, c_CHAR: list[list[str]]):
     """為他人佩戴"""
     argsLen = len(context.args)
@@ -93,6 +120,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
             gagName = context.args[1]
     toUser: str = context.args[0]
     if toUser == 'help':
+        help(update, context, c_CHAR)
         return
     elif toUser == 'on':
         enable(update, context, redisPool0, True)
@@ -113,7 +141,8 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
             isOK = True
     if isOK == False:
         redisConnect.close()
-        alert = fromUser+' 抱歉， '+toUser+' 目前禁止被其他人安装口塞。\n'+toUser+'必须使用 `/gag on` 指令来允许其他人这样做。'
+        alert = fromUser+' 抱歉， '+toUser+' 目前禁止被其他人安装口塞。\n' + \
+            toUser+'必须使用 `/gag on` 指令来允许其他人这样做。'
         print(alert)
         context.bot.send_message(
             chat_id=update.effective_chat.id, text=alert)
@@ -177,7 +206,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
             toUser+' 请注意：\n现在你只能发送包含如下文字的消息（单字或组合成词）「' + \
             ('、'.join(c_CHAR[0]))+'」，\n并且必须包含以下标点之一或多个（必须是中文标点）「' + \
             ('、'.join(c_CHAR[1])) + \
-            '」。\n示例：「咕呜…！」，「唔…啊…」。\n每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。'
+            '」。\n示例：「咕呜…！」，「唔…啊…」。\n每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。\n有关更多帮助，请输入 `/gag help` 。'
     redisConnect.close()
     if fromUser == toUser:
         alert += '\n咦？！居然自己给自己戴？真是个可爱的绒布球呢！'

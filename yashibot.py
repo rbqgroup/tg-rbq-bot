@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from encodings import utf_8
 from telegram import Update
 # pip uninstall python-telegram-bot telegram
 # pip install python-telegram-bot --upgrade
@@ -11,13 +12,15 @@ import redis
 import json
 import d_chat
 import d_gag
+import hashlib
 
 print('正在初始化...')
 
 c_TGTOKEN = '*:*'
 c_REDIS = ['127.0.0.1', 6379, '*']
 c_REDISDB = [10, 11]  # 配置庫
-c_CHAR: list[list[str]] = [['呜', '嘤', '哈', '啊', '唔', '嗯', '呃', '咿', '噫', '咕'], ['！', '？', '…', '，']]
+c_CHAR: list[list[str]] = [['呜', '嘤', '哈', '啊', '唔',
+                            '嗯', '呃', '咿', '噫', '咕'], ['！', '？', '…', '，']]
 c_CHARALL: list[str] = c_CHAR[0] + c_CHAR[1]
 c_GAGADD = [3, 5]  # 每次增加多少
 
@@ -58,7 +61,7 @@ updater.start_polling()
 
 def echo(update: Update, context: CallbackContext):
     """收到的所有非命令文字訊息"""
-    if update.message.chat == None or isPermission(update.message.chat.id) == False:
+    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id) == False:
         return
     text: str = update.message.text
     if len(text) == 0 or text[0] == '/':
@@ -74,7 +77,8 @@ def new_member(update, context):
         return
     # print(update.message.from_user.username)
     for member in update.message.new_chat_members:
-        # member: {'username': 'kagura_miyabi', 'last_name': 'みやび', 'first_name': '神楽', 'id': 1000005900, 'is_bot': False}
+        if member.is_bot:
+            continue
         username = member.username
         # alert = ' 你好， @'+username+' ，欢迎加入 '+update.message.chat.title+' ！下面，请发送「/verify 我是绒布球」来完成加群验证。' # TODO
         alert = ' 你好， @'+username+' ，欢迎加入 '+update.message.chat.title+' ！'
@@ -97,6 +101,20 @@ def gag(update: Update, context: CallbackContext):
 
 
 caps_handler = CommandHandler('gag', gag)
+dispatcher.add_handler(caps_handler)
+
+
+def about(update: Update, context: CallbackContext):
+    """幫助"""
+    f = open('help_about.txt','r',encoding='utf_8')
+    txt = f.read()
+    f.close()
+    if hashlib.md5(txt.encode()).hexdigest() != 'dcf0894f267288695a2273924a2c3f57':
+        txt = '文件保护功能检测到错误，请联系实例维护者。'
+    context.bot.send_message(chat_id=update.effective_chat.id, text=txt)
+
+
+caps_handler = CommandHandler('about', about)
 dispatcher.add_handler(caps_handler)
 
 print('初始化完成。')
