@@ -62,7 +62,7 @@ def enable(update: Update, context: CallbackContext, redisPool: redis.Connection
     enableAltStr = '被他人佩戴口塞。'
     if enableMode < 0 or enableMode > 1:
         redisConnect.close()
-        alert = fromUser+' 你被超级管理员禁止修改该开关。'
+        alert = fromUser+' 你被超级管理员「滥权」了！被禁止修改该开关！'
         if enableMode < 0:
             alert += '\n目前 '+fromUser+' 强制禁止'+enableAltStr
         elif enableMode > 1:
@@ -85,11 +85,11 @@ def enable(update: Update, context: CallbackContext, redisPool: redis.Connection
 
 
 def help(update: Update, context: CallbackContext, c_CHAR: list[list[str]]):
-    f = open('help_gag.txt','r',encoding='utf_8')
+    f = open('help_gag.txt', 'r', encoding='utf_8')
     txt = f.read()
     f.close()
-    if hashlib.md5(txt.encode()).hexdigest() != 'da03afce333339838aaacf472be6d9e7':
-        txt = '文件保护功能检测到错误，请联系实例维护者。'
+    # if hashlib.md5(txt.encode()).hexdigest() != 'da03afce333339838aaacf472be6d9e7':
+    #     txt = '文件保护功能检测到错误，请联系实例维护者。'
     t1Arr: list[str] = c_CHAR[0]
     t2Arr: list[str] = c_CHAR[1]
     t1: str = '「'+('」、「'.join(t1Arr))+'」'
@@ -112,9 +112,13 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     """為他人佩戴"""
     argsLen = len(context.args)
     if argsLen == 0:
+        help(update, context, c_CHAR)
         return
     gagTypesKeys = list(c_GAGTYPES.keys())
     gagName: str = gagTypesKeys[0]
+    selectGagInfo = c_GAGTYPES[gagName]
+    selectGagAdd: int = selectGagInfo[0]
+    selectGagNeed: int = selectGagInfo[1]
     if argsLen == 2:
         if gagName in gagTypesKeys:
             gagName = context.args[1]
@@ -142,7 +146,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     if isOK == False:
         redisConnect.close()
         alert = fromUser+' 抱歉， '+toUser+' 目前禁止被其他人安装口塞。\n' + \
-            toUser+'必须使用 `/gag on` 指令来允许其他人这样做。'
+            toUser+' 必须使用 `/gag on` 指令来允许其他人这样做。'
         print(alert)
         context.bot.send_message(
             chat_id=update.effective_chat.id, text=alert)
@@ -173,7 +177,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
             alert = '抱歉， '+fromUser+' 。你已经为 '+toUser + \
                 ' 佩戴过 '+gagName+' 了，请在 '+toUser+' 挣脱后再试。'
         else:
-            gagTotal += 5
+            gagTotal += selectGagAdd
             infoArrInf[0] = gagTotal
             infoArr[0] = infoArrInf
             names.append(fromUser)
@@ -185,9 +189,6 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
             (' 、 '.join(names))+' 安装或加固的 '+gagName + \
             ' ，还需要挣扎 '+str(gagTotal)+' 次才能把它挣脱！'
     else:
-        selectGagInfo = c_GAGTYPES[gagName]
-        selectGagAdd: int = selectGagInfo[0]
-        selectGagNeed: int = selectGagInfo[1]
         point: int = rpoint(redisConnect, toUser, 0)
         if point < selectGagNeed:
             redisConnect.close()
@@ -203,10 +204,10 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         gagInfo = json.dumps([[selectGagAdd, gagName], [fromUser]])
         redisConnect.set(rediskey, gagInfo, ex=600)
         alert = fromUser+' 为 '+toUser+' 戴上了 '+gagName+' ！\n'+toUser+' 必须挣扎 '+str(selectGagAdd)+' 次才能挣脱它！\n其他人可以继续用同样指令加固 '+toUser+' 的 '+gagName+' （但同一个人只能在对方挣脱后才能再次为对方佩戴或加固）。\n' + \
-            toUser+' 请注意：\n现在你只能发送包含如下文字的消息（单字或组合成词）「' + \
-            ('、'.join(c_CHAR[0]))+'」，\n并且必须包含以下标点之一或多个（必须是中文标点）「' + \
+            toUser+' 请注意：\n你接下来发送的消息中必须包含且只包含以下文字（一个和多个）：「' + \
+            ('、'.join(c_CHAR[0]))+'」，\n且*同时*包含且只包含以下符号（一个和多个）：「' + \
             ('、'.join(c_CHAR[1])) + \
-            '」。\n示例：「咕呜…！」，「唔…啊…」。\n每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。\n有关更多帮助，请输入 `/gag help` 。'
+            '」。\n示例：「唔…！」，「哈…啊…」。\n每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。\n有关更多帮助，请输入 `/gag help` 。\n小提示：被别人口塞了的话，最好在第二个人加固之前逃脱哦~'
     redisConnect.close()
     if fromUser == toUser:
         alert += '\n咦？！居然自己给自己戴？真是个可爱的绒布球呢！'

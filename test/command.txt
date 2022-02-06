@@ -1,0 +1,3 @@
+gag - /gag @username , 说明: /gag help
+rbqpoint - 查询自己的「绒度」
+about - 关于和帮助
