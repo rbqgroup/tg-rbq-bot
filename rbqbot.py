@@ -16,7 +16,7 @@ import hashlib
 
 print('正在初始化...')
 
-c_TGTOKEN = '*:*'
+c_TGTOKEN = '*:*-*'
 c_REDIS = ['127.0.0.1', 6379, '*']
 c_REDISDB = [10, 11]  # 配置庫
 c_CHAR: list[list[str]] = [
@@ -61,7 +61,7 @@ updater.start_polling()
 
 def echo(update: Update, context: CallbackContext):
     """收到的所有非命令文字訊息"""
-    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id) == False:
+    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id) == False:
         return
     text: str = update.message.text
     if len(text) == 0 or text[0] == '/':

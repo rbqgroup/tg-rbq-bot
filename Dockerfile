@@ -4,4 +4,4 @@ COPY *.py /usr/src/app/
 COPY *.txt /usr/src/app/
 RUN pip install python-telegram-bot --upgrade
 RUN pip install redis
-CMD ["python", "./yashibot.py"]
+CMD ["python", "./rbqbot.py"]
