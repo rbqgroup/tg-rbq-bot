@@ -85,6 +85,10 @@ def enable(update: Update, context: CallbackContext, redisPool: redis.Connection
 
 
 def help(update: Update, context: CallbackContext, c_CHAR: list[list[str]]):
+    if update.message.chat.type != 'private':
+        alert = '由于信息内容比较长，为了防止长信息刷屏，请和我*私聊*并重新发送此命令。'
+        context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
+        return
     f = open('help_gag.txt', 'r', encoding='utf_8')
     txt = f.read()
     f.close()
@@ -100,8 +104,7 @@ def help(update: Update, context: CallbackContext, c_CHAR: list[list[str]]):
         gagInfoArr = c_GAGTYPES[gagName]
         addNum: str = str(gagInfoArr[0])
         canNum: str = str(gagInfoArr[1])
-        newLine: str = '「'+gagName+'」，需要「绒度」至少 '+canNum + \
-            ' 才能被用，每次「佩戴」或「加固」增加「挣扎」所需次数 '+addNum+' 次。'
+        newLine: str = '「'+gagName+'」，需要对方绒度 '+canNum+' ，增加所需挣扎次数 '+addNum+' 。'
         gagInfos.append(newLine)
     t3: str = '\n'.join(gagInfos)
     txt = txt.replace('<t1>', t1).replace('<t2>', t2).replace('<t3>', t3)
@@ -112,16 +115,25 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     """為他人佩戴"""
     argsLen = len(context.args)
     if argsLen == 0:
-        help(update, context, c_CHAR)
+        alert = '使用方式： `/gag @username 口塞名`\n有关详细使用规则和可用口塞名，请*私聊*我发送 `/gag help` 了解。'
+        print(alert)
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text=alert)
         return
     gagTypesKeys = list(c_GAGTYPES.keys())
     gagName: str = gagTypesKeys[0]
-    selectGagInfo = c_GAGTYPES[gagName]
-    selectGagAdd: int = selectGagInfo[0]
-    selectGagNeed: int = selectGagInfo[1]
     if argsLen == 2:
         if gagName in gagTypesKeys:
             gagName = context.args[1]
+        else:
+            alert = '你使了我这里没有的口塞呢……\n要了解都有哪些口塞可以使用及规则，请*私聊*我发送 `/gag help` 了解。'
+            print(alert)
+            context.bot.send_message(
+                chat_id=update.effective_chat.id, text=alert)
+            return
+    selectGagInfo = c_GAGTYPES[gagName]
+    selectGagAdd: int = selectGagInfo[0]
+    selectGagNeed: int = selectGagInfo[1]
     toUser: str = context.args[0]
     if toUser == 'help':
         help(update, context, c_CHAR)

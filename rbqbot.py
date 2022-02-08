@@ -13,8 +13,11 @@ import json
 import d_chat
 import d_gag
 import hashlib
+import time
+import datetime
 
 print('正在初始化...')
+starttime = datetime.datetime.now()
 
 c_TGTOKEN = '*:*-*'
 c_REDIS = ['127.0.0.1', 6379, '*']
@@ -34,7 +37,7 @@ redisPool1: redis.ConnectionPool = redis.ConnectionPool(
     host=c_REDIS[0], port=c_REDIS[1], password=c_REDIS[2], db=c_REDISDB[1])
 
 
-def isPermission(chatID: int) -> bool:
+def isPermission(chatID: int, chatTitle:str) -> bool:
     """檢查該會話是否有許可權使用此機器人"""
     redisConnect = redis.Redis(connection_pool=redisPool0)
     rediskey = 'can_' + str(chatID)
@@ -42,7 +45,10 @@ def isPermission(chatID: int) -> bool:
     redisConnect.close()
     if isPass != None and isPass == b'1':
         return True
-    print('不能提供服务 ' + str(chatID))
+    title = ''
+    if chatTitle != None:
+        title = chatTitle
+    print('不能提供服务 (' + str(chatID) + ') '+title)
     return False
 
 
@@ -61,7 +67,7 @@ updater.start_polling()
 
 def echo(update: Update, context: CallbackContext):
     """收到的所有非命令文字訊息"""
-    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id) == False:
+    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id,update.message.chat.title) == False:
         return
     text: str = update.message.text
     if len(text) == 0 or text[0] == '/':
@@ -73,7 +79,7 @@ def echo(update: Update, context: CallbackContext):
 
 def new_member(update, context):
     """新成員加入"""
-    if update.message.chat == None or isPermission(update.message.chat.id) == False:
+    if update.message.chat != None and isPermission(update.message.chat.id,update.message.chat.title) == False:
         return
     # print(update.message.from_user.username)
     for member in update.message.new_chat_members:
@@ -95,7 +101,13 @@ updater.dispatcher.add_handler(newMemberHandler)
 
 def gag(update: Update, context: CallbackContext):
     """為他人佩戴口球"""
-    if update.message.chat == None or isPermission(update.message.chat.id) == False:
+    if update.message.chat == None or update.message.chat.type == None:
+        return
+    # group, supergroup, private, channel
+    if update.message.chat.type == 'private' and len(context.args) > 0 and context.args[0] == 'help':
+        d_gag.add(update, context, redisPool0, c_CHAR)
+        return
+    if isPermission(update.message.chat.id,update.message.chat.title) == False:
         return
     d_gag.add(update, context, redisPool0, c_CHAR)
 
@@ -106,6 +118,12 @@ dispatcher.add_handler(caps_handler)
 
 def about(update: Update, context: CallbackContext):
     """幫助"""
+    if update.message.chat == None or update.message.chat.type == None:
+        return
+    if update.message.chat.type != 'private':
+        alert = '由于信息内容比较长，为了防止长信息刷屏，请和我*私聊*并重新发送此命令。'
+        context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
+        return
     f = open('help_about.txt', 'r', encoding='utf_8')
     txt = f.read()
     f.close()

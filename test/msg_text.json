@@ -9,7 +9,7 @@
         "date": 8888888888,
         "photo": [],
         "chat": {
-            "type": "supergroup",
+            "type": "supergroup", // Group, SuperGroup, Private, Channel
             "title": "雅诗测试用组",
             "id": -8888888888888
         },
