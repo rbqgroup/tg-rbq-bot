@@ -185,4 +185,22 @@ def rbqpoint(update: Update, context: CallbackContext):
 caps_handler = CommandHandler('rbqpoint', rbqpoint)
 dispatcher.add_handler(caps_handler)
 
+
+def ping(update: Update, context: CallbackContext):
+    groupinfo = update.message.chat.title+'」'
+    if update.message.chat == None or isPermission(update.message.chat.id,update.message.chat.title) == False:
+        groupinfo += '没有'
+    else:
+        groupinfo += '具有'
+    t = time.time()
+    endtime = datetime.datetime.now()
+    runsec:int = (endtime - starttime).seconds
+    alert = 'pong\n雅诗电子绒布球 v1.8.1\n服务器时间戳: '+str(t)+' 秒。\n距离上次重新启动: '+str(runsec)+' 秒。\n当前会话「'+groupinfo+'使用许可权。\n有关更多信息请参阅 `/about` 。\n          本 BOT 具有超级绒力。'
+    print(alert)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id, text=alert)
+
+caps_handler = CommandHandler('ping', ping)
+dispatcher.add_handler(caps_handler)
+
 print('初始化完成。')
