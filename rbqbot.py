@@ -12,6 +12,7 @@ import redis
 import json
 import d_chat
 import d_gag
+import d_verify
 import hashlib
 import time
 import datetime
@@ -29,6 +30,8 @@ c_GAGADD = [3, 5]  # 每次增加多少
 
 updater = Updater(token=c_TGTOKEN, use_context=True)
 dispatcher = updater.dispatcher
+jobQueue = updater.job_queue
+timingJob = None
 
 # Redis
 redisPool0: redis.ConnectionPool = redis.ConnectionPool(
@@ -37,7 +40,7 @@ redisPool1: redis.ConnectionPool = redis.ConnectionPool(
     host=c_REDIS[0], port=c_REDIS[1], password=c_REDIS[2], db=c_REDISDB[1])
 
 
-def isPermission(chatID: int, chatTitle:str) -> bool:
+def isPermission(chatID: int, chatTitle: str) -> bool:
     """檢查該會話是否有許可權使用此機器人"""
     redisConnect = redis.Redis(connection_pool=redisPool0)
     rediskey = 'can_' + str(chatID)
@@ -62,15 +65,25 @@ def start(update: Update, context: CallbackContext):
 
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
-updater.start_polling()
+
+
+def timing(context: CallbackContext):
+    """每幾秒觸發一次"""
+    d_verify.timeChk(context, redisPool0)
+    # context.bot.send_message(chat_id='@YOUR CHANELL ID',text='job executed')
+
+
+jobQueue.run_repeating(timing, interval=5.0, first=0.0)
 
 
 def echo(update: Update, context: CallbackContext):
     """收到的所有非命令文字訊息"""
-    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id,update.message.chat.title) == False:
+    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     text: str = update.message.text
     if len(text) == 0 or text[0] == '/':
+        return
+    if d_verify.chatChk(update, context, redisPool0):
         return
     if d_gag.chk(update, context, redisPool0, c_CHAR):
         return
@@ -79,20 +92,13 @@ def echo(update: Update, context: CallbackContext):
 
 def new_member(update, context):
     """新成員加入"""
-    if update.message.chat != None and isPermission(update.message.chat.id,update.message.chat.title) == False:
+    if update.message.chat != None and isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
-    # print(update.message.from_user.username)
-    for member in update.message.new_chat_members:
-        if member.is_bot:
-            continue
-        username = member.username
-        # alert = ' 你好， @'+username+' ，欢迎加入 '+update.message.chat.title+' ！下面，请发送「/verify 我是绒布球」来完成加群验证。' # TODO
-        alert = ' 你好， @'+username+' ，欢迎加入 '+update.message.chat.title+' ！'
-        print(alert)
-        context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
+    d_verify.welcome(update, context, redisPool0)
 
 
-echoHandler = MessageHandler(Filters.text & (~Filters.command), echo)
+echoHandler = MessageHandler(Filters.text & (
+    ~Filters.command), echo, pass_job_queue=True)
 dispatcher.add_handler(echoHandler)
 newMemberHandler = MessageHandler(
     Filters.status_update.new_chat_members, new_member)
@@ -107,7 +113,7 @@ def gag(update: Update, context: CallbackContext):
     if update.message.chat.type == 'private' and len(context.args) > 0 and context.args[0] == 'help':
         d_gag.add(update, context, redisPool0, c_CHAR)
         return
-    if isPermission(update.message.chat.id,update.message.chat.title) == False:
+    if isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     d_gag.add(update, context, redisPool0, c_CHAR)
 
@@ -177,7 +183,7 @@ def rbqpoint(update: Update, context: CallbackContext):
         alert += '\n已 经 是 究 极 绒 布 球 了 ！'
     elif point > 10000:
         alert += '\n本 群 元 老 级 绒 布 球 ！'
-    print(alert)
+    print(chatID, alert)
     context.bot.send_message(
         chat_id=update.effective_chat.id, text=alert)
 
@@ -188,19 +194,34 @@ dispatcher.add_handler(caps_handler)
 
 def ping(update: Update, context: CallbackContext):
     groupinfo = update.message.chat.title+'」'
-    if update.message.chat == None or isPermission(update.message.chat.id,update.message.chat.title) == False:
+    if update.message.chat == None or isPermission(update.message.chat.id, update.message.chat.title) == False:
         groupinfo += '没有'
     else:
         groupinfo += '具有'
     t = time.time()
     endtime = datetime.datetime.now()
-    runsec:int = (endtime - starttime).seconds
-    alert = 'pong\n雅诗电子绒布球 v1.8.1\n服务器时间戳: '+str(t)+' 秒。\n距离上次重新启动: '+str(runsec)+' 秒。\n当前会话「'+groupinfo+'使用许可权。\n有关更多信息请参阅 `/about` 。\n          本 BOT 具有超级绒力。'
-    print(alert)
+    runsec: int = (endtime - starttime).seconds
+    alert = 'pong\n雅诗电子绒布球 v1.9.0\n服务器时间戳: '+str(t)+' 秒。\n距离上次重新启动: '+str(
+        runsec)+' 秒。\n当前会话「'+groupinfo+'使用许可权。\n有关更多信息请参阅 `/about` 。\n          本 BOT 具有超级绒力。'
+    print(chatID, alert)
     context.bot.send_message(
         chat_id=update.effective_chat.id, text=alert)
+
 
 caps_handler = CommandHandler('ping', ping)
 dispatcher.add_handler(caps_handler)
 
+
+def verify(update: Update, context: CallbackContext):
+    if update.message.chat != None and isPermission(update.message.chat.id, update.message.chat.title) == False:
+        return
+    d_verify.verify(update, context, redisPool0)
+
+
+caps_handler = CommandHandler('verify', verify)
+dispatcher.add_handler(caps_handler)
+
 print('初始化完成。')
+
+updater.start_polling()
+updater.idle()

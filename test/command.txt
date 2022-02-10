@@ -2,3 +2,4 @@ gag - 给别人佩戴口塞，说明: /gag help
 rbqpoint - 查询自己或别人的「绒度」
 about - 关于和帮助
 ping - 检查绒群 bot 是否还健在
+verify - 新群员验证
