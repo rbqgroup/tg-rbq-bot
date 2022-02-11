@@ -92,7 +92,7 @@ def echo(update: Update, context: CallbackContext):
 
 def new_member(update, context):
     """新成員加入"""
-    if update.message.chat != None and isPermission(update.message.chat.id, update.message.chat.title) == False:
+    if update.message.chat != None or isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     d_verify.welcome(update, context, redisPool0)
 
@@ -107,7 +107,7 @@ updater.dispatcher.add_handler(newMemberHandler)
 
 def gag(update: Update, context: CallbackContext):
     """為他人佩戴口球"""
-    if update.message.chat == None or update.message.chat.type == None:
+    if update.message.chat == None or update.message.chat.type == None or isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     # group, supergroup, private, channel
     if update.message.chat.type == 'private' and len(context.args) > 0 and context.args[0] == 'help':
@@ -127,8 +127,10 @@ def about(update: Update, context: CallbackContext):
     if update.message.chat == None or update.message.chat.type == None:
         return
     if update.message.chat.type != 'private':
-        alert = '由于信息内容比较长，为了防止长信息刷屏，请和我*私聊*并重新发送此命令。'
+        alert = '点此了解：\nhttps://t.me/rbq_ch_bot_ch/3'
         context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
+        print(update.effective_chat.id, update.effective_chat.title,
+          update.message.from_user.id, update.message.from_user.username, alert)
         return
     f = open('help_about.txt', 'r', encoding='utf_8')
     txt = f.read()
@@ -144,7 +146,7 @@ dispatcher.add_handler(caps_handler)
 
 def rbqpoint(update: Update, context: CallbackContext):
     """絨度值查詢"""
-    if update == None or update.message == None or update.message.from_user == None or update.message.from_user.username == None:
+    if update == None or update.message == None or update.message.from_user == None or update.message.from_user.username == None or isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     user: str = '@'+update.message.from_user.username
     fromUser = user
@@ -183,7 +185,8 @@ def rbqpoint(update: Update, context: CallbackContext):
         alert += '\n已 经 是 究 极 绒 布 球 了 ！'
     elif point > 10000:
         alert += '\n本 群 元 老 级 绒 布 球 ！'
-    print(chatID, alert)
+    print(update.effective_chat.id, update.effective_chat.title,
+          update.message.from_user.id, update.message.from_user.username, alert)
     context.bot.send_message(
         chat_id=update.effective_chat.id, text=alert)
 
@@ -193,8 +196,14 @@ dispatcher.add_handler(caps_handler)
 
 
 def ping(update: Update, context: CallbackContext):
-    groupinfo = update.message.chat.title+'」'
-    if update.message.chat == None or isPermission(update.message.chat.id, update.message.chat.title) == False:
+    grouptitle: str = '私人'
+    if update.message.chat.title != None:
+        grouptitle = update.message.chat.title
+    elif update.message.from_user.username != None:
+        grouptitle = update.message.from_user.username
+    groupinfo: str = grouptitle + '」'
+    chatID: int = update.message.chat.id
+    if update.message.chat == None or isPermission(chatID, update.message.chat.title) == False:
         groupinfo += '没有'
     else:
         groupinfo += '具有'
@@ -203,7 +212,8 @@ def ping(update: Update, context: CallbackContext):
     runsec: int = (endtime - starttime).seconds
     alert = 'pong\n雅诗电子绒布球 v1.9.0\n服务器时间戳: '+str(t)+' 秒。\n距离上次重新启动: '+str(
         runsec)+' 秒。\n当前会话「'+groupinfo+'使用许可权。\n有关更多信息请参阅 `/about` 。\n          本 BOT 具有超级绒力。'
-    print(chatID, alert)
+    print(update.message.chat.id, update.message.chat.title,
+          update.message.from_user.id, update.message.from_user.username, alert)
     context.bot.send_message(
         chat_id=update.effective_chat.id, text=alert)
 
@@ -213,7 +223,7 @@ dispatcher.add_handler(caps_handler)
 
 
 def verify(update: Update, context: CallbackContext):
-    if update.message.chat != None and isPermission(update.message.chat.id, update.message.chat.title) == False:
+    if update.message.chat != None or isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     d_verify.verify(update, context, redisPool0)
 

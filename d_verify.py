@@ -32,7 +32,8 @@ def welcome(update: Update, context: CallbackContext, redisPool0: redis.Connecti
             update.message.chat.title+' ！\n不过，在和大家一起聊天之前，请先完成加群验证。\n请在聊天中发送「/verify ' + \
             word+'」来完成加群验证。\n你有 '+str(c_TIMEOUT) + \
             ' 秒的时间来完成这项验证，如果输入错误或者超时，是坏绒布球，将被移出群组哦。'
-        print(chatID, alert)
+        print(update.effective_chat.id, update.effective_chat.title,
+              update.message.from_user.id, update.message.from_user.username, alert)
         context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
     redisConnect.close()
 
@@ -76,10 +77,11 @@ def timeChk(context: CallbackContext, redisPool0: redis.ConnectionPool):
         if val0 == None:  # 驗證已經超時，執行封禁
             redisConnect.delete(key1)
             context.bot.ban_chat_member(groupID, userID)
-            alert:str = '由于他验证输入错误或超时，已被除籍绒布球，我们怀念他。'
-            print(chatID, alert)
+            alert: str = '由于他验证输入错误或超时，已被除籍绒布球，我们怀念他。'
+            print(groupID, userID, fromUser, alert)
             context.bot.send_message(chat_id=groupID, text=alert)
     redisConnect.close()
+
 
 def verify(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool):
     print('verify')
@@ -93,7 +95,7 @@ def verify(update: Update, context: CallbackContext, redisPool0: redis.Connectio
     redisKey1: str = 'vfy1_' + redisKey
     redisConnect = redis.Redis(connection_pool=redisPool0)
     info = redisConnect.get(redisKey0)
-    print('info',info)
+    print('info', info)
     if info != None and len(info) > 0:
         info = info.decode()
         infoArr: list[str] = info.split(',')
@@ -101,7 +103,8 @@ def verify(update: Update, context: CallbackContext, redisPool0: redis.Connectio
         word: str = infoArr[1]
         if context.args[0] == word:
             alert: str = '欢迎， '+fromUser+' ！验证通过！'
-            print(chatID, alert)
+            print(update.message.chat.id, update.message.chat.title,
+                  update.message.from_user.id, update.message.from_user.username, alert)
             context.bot.send_message(chat_id=chatID, text=alert)
             redisConnect.delete(redisKey0)
             redisConnect.delete(redisKey1)
@@ -111,13 +114,16 @@ def verify(update: Update, context: CallbackContext, redisPool0: redis.Connectio
                 redisConnect.delete(redisKey0)
                 redisConnect.delete(redisKey1)
                 context.bot.ban_chat_member(chatID, userID)
-                alert:str = '由于他验证超时，已被除籍绒布球，我们怀念他。'
-                print(chatID, alert)
+                alert: str = '由于他验证超时，已被除籍绒布球，我们怀念他。'
+                print(update.message.chat.id, update.message.chat.title,
+                      update.message.from_user.id, update.message.from_user.username, alert)
                 context.bot.send_message(chat_id=chatID, text=alert)
             else:
-                redisKey: str = 'vfy0_' + str(chatID) + '_' + str(userID) + '_' + fromUser
+                redisKey: str = 'vfy0_' + \
+                    str(chatID) + '_' + str(userID) + '_' + fromUser
                 redisVal: str = str(remainingTimes) + ',' + word
                 redisConnect.set(redisKey, redisVal)
-                alert:str = '验证输入错误！你还有 '+str(remainingTimes)+' 次机会在限时内重新输入！'
-                print(chatID, alert)
+                alert: str = '验证输入错误！你还有 '+str(remainingTimes)+' 次机会在限时内重新输入！'
+                print(update.message.chat.id, update.message.chat.title,
+                      update.message.from_user.id, update.message.from_user.username, alert)
                 context.bot.send_message(chat_id=chatID, text=alert)

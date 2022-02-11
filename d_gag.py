@@ -65,7 +65,7 @@ def enable(update: Update, context: CallbackContext, redisPool: redis.Connection
             alert += '\n目前 '+fromUser+' 强制禁止'+enableAltStr
         elif enableMode > 1:
             alert += '\n目前 '+fromUser+' 强制允许'+enableAltStr
-        print(chatID, alert)
+        print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
         context.bot.send_message(
             chat_id=update.effective_chat.id, text=alert)
         return
@@ -77,14 +77,14 @@ def enable(update: Update, context: CallbackContext, redisPool: redis.Connection
         enableMode = 0
     redisConnect.set(rediskey, str(enableMode))
     redisConnect.close()
-    print(chatID, alert)
+    print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
     context.bot.send_message(
         chat_id=update.effective_chat.id, text=alert)
 
 
 def help(update: Update, context: CallbackContext, c_CHAR: list[list[str]]):
     if update.message.chat.type != 'private':
-        alert = '由于信息内容比较长，为了防止长信息刷屏，请和我*私聊*并重新发送此命令。'
+        alert = '点此了解：\nhttps://t.me/rbq_ch_bot_ch/4'
         context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
         return
     f = open('help_gag.txt', 'r', encoding='utf_8')
@@ -114,7 +114,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     argsLen = len(context.args)
     if argsLen == 0:
         alert = '使用方式： `/gag @username 口塞名`\n有关详细使用规则和可用口塞名，请*私聊*我发送 `/gag help` 了解。'
-        print(chatID, alert)
+        print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
         context.bot.send_message(
             chat_id=update.effective_chat.id, text=alert)
         return
@@ -125,7 +125,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
             gagName = context.args[1]
         else:
             alert = '你使了我这里没有的口塞呢……\n要了解都有哪些口塞可以使用及规则，请*私聊*我发送 `/gag help` 了解。'
-            print(chatID, alert)
+            print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
             context.bot.send_message(
                 chat_id=update.effective_chat.id, text=alert)
             return
@@ -157,7 +157,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         redisConnect.close()
         alert = fromUser+' 抱歉， '+toUser+' 目前禁止被其他人安装口塞。\n' + \
             toUser+' 必须使用 `/gag on` 指令来允许其他人这样做。'
-        print(chatID, alert)
+        print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
         context.bot.send_message(
             chat_id=update.effective_chat.id, text=alert)
         return
@@ -169,7 +169,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         if gagInfo == '0':
             redisConnect.close()
             alert = fromUser+' 抱歉， '+toUser+' 刚刚挣脱口塞！请给对方 1 分钟的休息时间！'
-            print(chatID, alert)
+            print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
             context.bot.send_message(
                 chat_id=update.effective_chat.id, text=alert)
             return
@@ -207,7 +207,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                 gagName+' ，需要等待对方绒度达到 '+str(selectGagNeed)+' 才行。\n'+toUser+' 当前绒度为 ' + \
                 str(point)+' ，目前可以使用的口塞有 '+(' 、 '.join(canUseNames)) + \
                 ' 。\n要查询自己的绒度，使用 `/rbqpoint` ；要查询每个绒度对应可用口塞，使用 `/gag help` 。'
-            print(chatID, alert)
+            print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
             context.bot.send_message(
                 chat_id=update.effective_chat.id, text=alert)
             return
@@ -221,7 +221,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     redisConnect.close()
     if fromUser == toUser:
         alert += '\n咦？！居然自己给自己戴？真是个可爱的绒布球呢！'
-    print(chatID, alert)
+    print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
     context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
 
 
@@ -285,7 +285,7 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                 singleNum: str = gagTotalStr[-1]
                 if singleNum == '5' or singleNum == '0':
                     alert = fromUser+' 加油！还有 '+gagTotalStr+' 次！'
-                    print(chatID, alert)
+                    print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
                     context.bot.send_message(
                         chat_id=update.effective_chat.id, text=alert)
             else:
@@ -296,7 +296,7 @@ def chk(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
                     (' 、 '.join(names))+' 佩戴或加固的 '+gagName + \
                     ' ！现在可以自由说话了！\n接下来 1 分钟为强制休息时间，期间不能再被佩戴任何口塞哦。\n现在 ' + \
                     fromUser+' 的绒度升到了 '+str(point)+' ！'
-                print(chatID, alert)
+                print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
                 context.bot.send_message(
                     chat_id=update.effective_chat.id, text=alert)
         else:
