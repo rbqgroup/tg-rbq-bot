@@ -77,7 +77,7 @@ def timeChk(context: CallbackContext, redisPool0: redis.ConnectionPool):
         if val0 == None:  # 驗證已經超時，執行封禁
             redisConnect.delete(key1)
             context.bot.ban_chat_member(groupID, userID)
-            alert: str = '由于他验证输入错误或超时，已被除籍绒布球，我们怀念他。'
+            alert: str = '由于 ' + fromUser + ' 验证输入错误或超时，已被除籍绒布球，我们怀念他。'
             print(groupID, userID, fromUser, alert)
             context.bot.send_message(chat_id=groupID, text=alert)
     redisConnect.close()
@@ -119,10 +119,8 @@ def verify(update: Update, context: CallbackContext, redisPool0: redis.Connectio
                       update.message.from_user.id, update.message.from_user.username, alert)
                 context.bot.send_message(chat_id=chatID, text=alert)
             else:
-                redisKey: str = 'vfy0_' + \
-                    str(chatID) + '_' + str(userID) + '_' + fromUser
                 redisVal: str = str(remainingTimes) + ',' + word
-                redisConnect.set(redisKey, redisVal)
+                redisConnect.set(redisKey0, redisVal, ex=c_TIMEOUT)
                 alert: str = '验证输入错误！你还有 '+str(remainingTimes)+' 次机会在限时内重新输入！'
                 print(update.message.chat.id, update.message.chat.title,
                       update.message.from_user.id, update.message.from_user.username, alert)

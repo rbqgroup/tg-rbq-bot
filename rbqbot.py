@@ -13,6 +13,7 @@ import json
 import d_chat
 import d_gag
 import d_verify
+import d_ping
 import hashlib
 import time
 import datetime
@@ -92,7 +93,7 @@ def echo(update: Update, context: CallbackContext):
 
 def new_member(update, context):
     """新成員加入"""
-    if update.message.chat != None or isPermission(update.message.chat.id, update.message.chat.title) == False:
+    if update.message.chat == None or isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     d_verify.welcome(update, context, redisPool0)
 
@@ -223,7 +224,7 @@ dispatcher.add_handler(caps_handler)
 
 
 def verify(update: Update, context: CallbackContext):
-    if update.message.chat != None or isPermission(update.message.chat.id, update.message.chat.title) == False:
+    if update.message.chat == None or isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     d_verify.verify(update, context, redisPool0)
 

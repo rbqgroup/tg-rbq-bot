@@ -113,7 +113,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
     """為他人佩戴"""
     argsLen = len(context.args)
     if argsLen == 0:
-        alert = '使用方式： `/gag @username 口塞名`\n有关详细使用规则和可用口塞名，请*私聊*我发送 `/gag help` 了解。'
+        alert = '使用方式： `/gag @username 口塞名`\n有关详细使用规则和可用口塞名，请发送 `/gag help` 了解。'
         print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
         context.bot.send_message(
             chat_id=update.effective_chat.id, text=alert)
@@ -124,7 +124,7 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         if gagName in gagTypesKeys:
             gagName = context.args[1]
         else:
-            alert = '你使了我这里没有的口塞呢……\n要了解都有哪些口塞可以使用及规则，请*私聊*我发送 `/gag help` 了解。'
+            alert = '你使了我这里没有的口塞呢……\n要了解都有哪些口塞可以使用及规则，请发送 `/gag help` 了解。'
             print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
             context.bot.send_message(
                 chat_id=update.effective_chat.id, text=alert)
