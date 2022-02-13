@@ -197,26 +197,10 @@ dispatcher.add_handler(caps_handler)
 
 
 def ping(update: Update, context: CallbackContext):
-    grouptitle: str = '私人'
-    if update.message.chat.title != None:
-        grouptitle = update.message.chat.title
-    elif update.message.from_user.username != None:
-        grouptitle = update.message.from_user.username
-    groupinfo: str = grouptitle + '」'
-    chatID: int = update.message.chat.id
-    if update.message.chat == None or isPermission(chatID, update.message.chat.title) == False:
-        groupinfo += '没有'
-    else:
-        groupinfo += '具有'
-    t = time.time()
-    endtime = datetime.datetime.now()
-    runsec: int = (endtime - starttime).seconds
-    alert = 'pong\n雅诗电子绒布球 v1.9.0\n服务器时间戳: '+str(t)+' 秒。\n距离上次重新启动: '+str(
-        runsec)+' 秒。\n当前会话「'+groupinfo+'使用许可权。\n有关更多信息请参阅 `/about` 。\n          本 BOT 具有超级绒力。'
-    print(update.message.chat.id, update.message.chat.title,
-          update.message.from_user.id, update.message.from_user.username, alert)
-    context.bot.send_message(
-        chat_id=update.effective_chat.id, text=alert)
+    permission:bool = isPermission(update.message.chat.id, update.message.chat.title)
+    if update.message.chat == None or permission == False:
+        return
+    d_ping.ping(update, context, starttime, permission, redisPool0, redisPool1)
 
 
 caps_handler = CommandHandler('ping', ping)
