@@ -169,7 +169,7 @@ def rbqpoint(update: Update, context: CallbackContext):
         if fromUser != user:
             alert += '\n你要帮助 '+user+' 成为绒布球吗？'
         else:
-            alert += '\n第一次使用吗？「绒度」会在每「挣扎」（佩戴口塞中并发送符合规则的消息）一次（不是按字符计算），增加 1 。如需帮助，可以输入相关功能帮助命令：例如口塞玩法可以输入 `/gag help` ，了解详细的游玩方法；有关本 bot 相关信息，可以输入 `/about` 了解。'
+            alert += '\n第一次使用吗？要了解绒度计算方式和玩法可以输入 `/gag help` 。'
     elif point <= 10:
         alert += '\n是个可爱的萌新绒布球呢。'
     elif point <= 100:

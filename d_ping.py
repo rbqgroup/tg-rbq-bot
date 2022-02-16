@@ -38,7 +38,7 @@ def ping(update: Update, context: CallbackContext, starttime: datetime, permissi
         '数据库使用: 0: '+str(redisConnect0.dbsize())+' 1: '+str(redisConnect1.dbsize()),
         '当前会话「'+groupinfo+'使用许可权。',
         '有关更多信息请参阅 `/about` 。',
-        '　　　　　　　　本 BOT 具有超级绒力。'
+        '　　　　　本 BOT 具有超级绒力。'
     ]
     redisConnect0.close()
     redisConnect1.close()

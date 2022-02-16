@@ -213,14 +213,11 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
             return
         gagInfo = json.dumps([[selectGagAdd, gagName], [fromUser]])
         redisConnect.set(rediskey, gagInfo, ex=600)
-        alert = fromUser+' 为 '+toUser+' 戴上了 '+gagName+' ！\n'+toUser+' 必须挣扎 '+str(selectGagAdd)+' 次才能挣脱它！\n其他人可以继续用同样指令加固 '+toUser+' 的 '+gagName+' （但同一个人只能在对方挣脱后才能再次为对方佩戴或加固）。\n' + \
-            toUser+' 请注意：\n你接下来发送的消息中必须包含且只包含以下文字（一个和多个）：「' + \
-            ('、'.join(c_CHAR[0]))+'」，\n且*同时*包含且只包含以下符号（一个和多个）：「' + \
-            ('、'.join(c_CHAR[1])) + \
-            '」。\n示例：「唔…！」，「哈…啊…」。\n每发送一条消息算作挣扎一次，包含其他字符的消息不能发送！\n如果 10 分钟没有任何加固或挣扎操作，将会自动解除。\n有关更多帮助，请输入 `/gag help` 。\n小提示：被别人口塞了的话，最好在第二个人加固之前逃脱哦~'
+        alert = fromUser+' 为 '+toUser+' 戴上了 '+gagName+' ！\n'+toUser+' 必须挣扎 '+str(selectGagAdd)+' 次才能挣脱它！\n其他人可以继续用同样指令加固 '+toUser+' 的 '+gagName+' （但同一个人只能在对方挣脱后才能再次为对方佩戴或加固）。'
+        if fromUser == toUser:
+            alert += '\n咦？！居然自己给自己戴？真是个可爱的绒布球呢！'
+        alert += '\nhttps://t.me/rbq_ch_bot_ch/5'
     redisConnect.close()
-    if fromUser == toUser:
-        alert += '\n咦？！居然自己给自己戴？真是个可爱的绒布球呢！'
     print(update.effective_chat.id,update.effective_chat.title,update.message.from_user.id,update.message.from_user.username, alert)
     context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
 
