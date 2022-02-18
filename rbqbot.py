@@ -79,7 +79,14 @@ jobQueue.run_repeating(timing, interval=5.0, first=0.0)
 
 def echo(update: Update, context: CallbackContext):
     """收到的所有非命令文字訊息"""
-    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot or isPermission(update.message.chat.id, update.message.chat.title) == False:
+    if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot:
+        return
+    if update.message.from_user.id == c_SUPERMGRID:
+        cmdTextArr: str = update.message.text.split(';;')
+        if len(cmdTextArr) >= 3 and cmdTextArr[0] == 'msg':
+            context.bot.send_message(chat_id=int(cmdTextArr[1]), text=cmdTextArr[2])
+        return
+    if isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
     text: str = update.message.text
     if len(text) == 0 or text[0] == '/':
@@ -131,7 +138,7 @@ def about(update: Update, context: CallbackContext):
         alert = '点此了解：\nhttps://t.me/rbq_ch_bot_ch/3'
         context.bot.send_message(chat_id=update.effective_chat.id, text=alert)
         print(update.effective_chat.id, update.effective_chat.title,
-          update.message.from_user.id, update.message.from_user.username, alert)
+              update.message.from_user.id, update.message.from_user.username, alert)
         return
     f = open('help_about.txt', 'r', encoding='utf_8')
     txt = f.read()
@@ -197,7 +204,8 @@ dispatcher.add_handler(caps_handler)
 
 
 def ping(update: Update, context: CallbackContext):
-    permission:bool = isPermission(update.message.chat.id, update.message.chat.title)
+    permission: bool = isPermission(
+        update.message.chat.id, update.message.chat.title)
     if update.message.chat == None or permission == False:
         return
     d_ping.ping(update, context, starttime, permission, redisPool0, redisPool1)

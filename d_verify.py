@@ -7,9 +7,9 @@ from telegram.ext import CallbackContext
 import redis
 import random
 
-c_WORDS: list[str] = ['', '小', '大', '超级', '可爱']
 c_OPPORTUNITIES: int = 2
 c_TIMEOUT: int = 120
+c_WORDS: list[str] = ['很', '非常', '超', '超级', '想变得']
 
 
 def welcome(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool):
@@ -23,7 +23,7 @@ def welcome(update: Update, context: CallbackContext, redisPool0: redis.Connecti
         chatID: str = str(update.message.chat.id)
         redisKey: str = 'vfy0_' + chatID + '_' + userID + '_' + fromUser
         wordRandom: int = random.randint(0, len(c_WORDS)-1)
-        word: str = '我是'+c_WORDS[wordRandom]+'绒布球'
+        word: str = '我'+c_WORDS[wordRandom]+'可爱'
         redisVal: str = str(c_OPPORTUNITIES)+','+word
         redisConnect.set(redisKey, redisVal, ex=c_TIMEOUT)
         redisKey: str = 'vfy1_' + chatID + '_' + userID + '_' + fromUser
