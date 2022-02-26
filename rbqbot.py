@@ -23,6 +23,7 @@ starttime = datetime.datetime.now()
 
 c_TGTOKEN = '*:*-*'
 c_REDIS = ['127.0.0.1', 6379, '*']
+c_SUPERMGRID = 0
 c_REDISDB = [10, 11]  # 配置庫
 c_CHAR: list[list[str]] = [
     ['呜', '哈', '啊', '唔', '嗯', '呃', '哦', '嗷', '呕', '噢', '喔'], ['！', '？', '…', '，']]
@@ -41,8 +42,20 @@ redisPool1: redis.ConnectionPool = redis.ConnectionPool(
     host=c_REDIS[0], port=c_REDIS[1], password=c_REDIS[2], db=c_REDISDB[1])
 
 
+def ignoreMessage(msg: str):
+    """服務啟動前幾秒拋棄積壓訊息"""
+    endtime = datetime.datetime.now()
+    runsec: int = (endtime - starttime).seconds
+    if (runsec < 5):
+        print('忽略消息 '+msg)
+        return True
+    return False
+
+
 def isPermission(chatID: int, chatTitle: str) -> bool:
     """檢查該會話是否有許可權使用此機器人"""
+    if ignoreMessage(str(chatID) + ' ' + chatTitle):
+        return False
     redisConnect = redis.Redis(connection_pool=redisPool0)
     rediskey = 'can_' + str(chatID)
     isPass = redisConnect.get(rediskey)
@@ -74,7 +87,7 @@ def timing(context: CallbackContext):
     # context.bot.send_message(chat_id='@YOUR CHANELL ID',text='job executed')
 
 
-jobQueue.run_repeating(timing, interval=5.0, first=0.0)
+jobQueue.run_repeating(timing, interval=5.0, first=5.0)
 
 
 def echo(update: Update, context: CallbackContext):
@@ -84,7 +97,8 @@ def echo(update: Update, context: CallbackContext):
     if update.message.from_user.id == c_SUPERMGRID:
         cmdTextArr: str = update.message.text.split(';;')
         if len(cmdTextArr) >= 3 and cmdTextArr[0] == 'msg':
-            context.bot.send_message(chat_id=int(cmdTextArr[1]), text=cmdTextArr[2])
+            context.bot.send_message(chat_id=int(
+                cmdTextArr[1]), text=cmdTextArr[2])
         return
     if isPermission(update.message.chat.id, update.message.chat.title) == False:
         return
