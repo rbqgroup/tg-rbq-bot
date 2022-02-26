@@ -8,9 +8,11 @@ from telegram.ext import CallbackContext
 from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters
+import pytz
 import redis
 import json
 import d_chat
+import d_chatcount
 import d_gag
 import d_verify
 import d_ping
@@ -33,7 +35,7 @@ c_GAGADD = [3, 5]  # 每次增加多少
 updater = Updater(token=c_TGTOKEN, use_context=True)
 dispatcher = updater.dispatcher
 jobQueue = updater.job_queue
-timingJob = None
+oldDay = -1
 
 # Redis
 redisPool0: redis.ConnectionPool = redis.ConnectionPool(
@@ -58,10 +60,13 @@ def isPermission(chatID: int, chatTitle: str) -> bool:
         return False
     redisConnect = redis.Redis(connection_pool=redisPool0)
     rediskey = 'can_' + str(chatID)
-    isPass = redisConnect.get(rediskey)
+    passInfo = redisConnect.get(rediskey)
     redisConnect.close()
-    if isPass != None and isPass == b'1':
-        return True
+    if passInfo != None:
+        passInfoStr: str = passInfo.decode()
+        passInfoArr: list[str] = passInfoStr.split(";")
+        if len(passInfoArr) > 0 and passInfoArr[0] == '1':
+            return True
     title = ''
     if chatTitle != None:
         title = chatTitle
@@ -109,6 +114,7 @@ def echo(update: Update, context: CallbackContext):
         return
     if d_gag.chk(update, context, redisPool0, c_CHAR):
         return
+    d_chatcount.updateCount(update, redisPool0)
     d_chat.chat(update, context, redisPool1)
 
 

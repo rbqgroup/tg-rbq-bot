@@ -56,13 +56,12 @@ def chatChk(update: Update, context: CallbackContext, redisPool0: redis.Connecti
     return False
 
 
-def timeChk(context: CallbackContext, redisPool0: redis.ConnectionPool):
+def timeChk(context: CallbackContext, redisConnect):
     """檢查是否驗證超時"""
-    redisConnect = redis.Redis(connection_pool=redisPool0)
     keys: list[bytes] = redisConnect.keys('vfy1_*')
     for key1b in keys:
         key1: str = key1b.decode()
-        key1Unit: list[str] = key1.split("_")
+        key1Unit: list[str] = key1.split('_')
         groupID: str = key1Unit[1]
         userID: str = key1Unit[2]
         fromUser: str = key1Unit[3]
@@ -80,7 +79,7 @@ def timeChk(context: CallbackContext, redisPool0: redis.ConnectionPool):
             alert: str = '由于 ' + fromUser + ' 验证输入错误或超时，已被除籍绒布球，我们怀念他。'
             print(groupID, userID, fromUser, alert)
             context.bot.send_message(chat_id=groupID, text=alert)
-    redisConnect.close()
+    # redisConnect.close()
 
 
 def verify(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPool):
