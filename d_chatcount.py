@@ -48,3 +48,31 @@ def getCount(redisConnect) -> set[set[int]]:
             allGroup[str(chatID)] = nowGroupUsers
     return allGroup
 
+
+def sendNewDay(context: CallbackContext, redisConnect):
+    allGroup: set[set[int]] = getCount(redisConnect)
+    for groupID in allGroup.keys():
+        nowGroupUsers: list = allGroup[groupID]
+        groupMeg: str = ''
+        redisKey: str = 'can_'+groupID
+        replyInfo = redisConnect.get(redisKey)
+        if replyInfo != None and len(replyInfo) > 0:
+            replyInfo = replyInfo.decode()
+            infoArr: list[str] = replyInfo.split(';')
+            if len(infoArr) > 2:
+                if infoArr[0] == '0' or len(infoArr[2]) == 0 or infoArr[2] == 'null':
+                    continue
+                groupMeg = infoArr[2]
+        if len(nowGroupUsers) > 0:
+            groupMeg += '\n　\n昨天群里最活跃的人是：'
+            i = 1
+            for userInfo in nowGroupUsers:
+                userName: str = userInfo[0]
+                chatCount: int = userInfo[1]
+                groupMeg += '\nTOP '+str(i)+' : @' + \
+                    userName+' ('+str(chatCount)+')'
+                i += 1
+                if i > 5:
+                    break
+        print(groupID + ' -> ' + groupMeg)
+        context.bot.send_message(chat_id=int(groupID), text=groupMeg)

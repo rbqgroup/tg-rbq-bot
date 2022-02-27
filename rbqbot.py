@@ -88,7 +88,17 @@ dispatcher.add_handler(start_handler)
 
 def timing(context: CallbackContext):
     """每幾秒觸發一次"""
-    d_verify.timeChk(context, redisPool0)
+    global oldDay
+    t = datetime.datetime.now(pytz.timezone('Asia/Shanghai'))
+    redisConnect = redis.Redis(connection_pool=redisPool0)
+    d_verify.timeChk(context, redisConnect)
+    if oldDay > 0:
+        if t.hour == 0 and t.minute == 0 and oldDay != t.day:
+            oldDay = t.day
+            d_chatcount.sendNewDay(context, redisConnect)
+    else:
+        oldDay = t.day
+    redisConnect.close()
     # context.bot.send_message(chat_id='@YOUR CHANELL ID',text='job executed')
 
 
