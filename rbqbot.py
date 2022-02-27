@@ -128,6 +128,11 @@ def echo(update: Update, context: CallbackContext):
     d_chat.chat(update, context, redisPool1)
 
 
+redisConnect = redis.Redis(connection_pool=redisPool0)
+d_chatcount.sendNewDay(None, redisConnect)
+redisConnect.close()
+
+
 def new_member(update, context):
     """新成員加入"""
     if update.message.chat == None or isPermission(update.message.chat.id, update.message.chat.title) == False:

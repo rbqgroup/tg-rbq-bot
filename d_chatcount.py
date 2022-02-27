@@ -20,7 +20,7 @@ def updateCount(update: Update, redisPool0: redis.ConnectionPool):
     redisConnect.close()
 
 
-def getCount(redisConnect) -> set[set[int]]:
+def getCount(redisConnect, isDelete: bool) -> set[set[int]]:
     keys1: list[bytes] = redisConnect.keys('can_*')
     allGroup: set[set[int]] = {}
     for key1 in keys1:
@@ -41,7 +41,8 @@ def getCount(redisConnect) -> set[set[int]]:
                     userChatCount = int(replyInfo)
                     nowGroupUsers[userinfo['username']] = userChatCount
             if redisConnect.exists(redisKey) > 0:
-                redisConnect.delete(redisKey)
+                if isDelete:
+                    redisConnect.delete(redisKey)
         if len(nowGroupUsers) > 0:
             nowGroupUsers = sorted(nowGroupUsers.items(
             ), key=lambda kv: (kv[1], kv[0]), reverse=True)
@@ -50,12 +51,14 @@ def getCount(redisConnect) -> set[set[int]]:
 
 
 def sendNewDay(context: CallbackContext, redisConnect):
-    allGroup: set[set[int]] = getCount(redisConnect)
+    onlyView = context == None
+    allGroup: set[set[int]] = getCount(redisConnect, not onlyView)
     for groupID in allGroup.keys():
         nowGroupUsers: list = allGroup[groupID]
         groupMeg: str = ''
         redisKey: str = 'can_'+groupID
         replyInfo = redisConnect.get(redisKey)
+        groupName: str = ''
         if replyInfo != None and len(replyInfo) > 0:
             replyInfo = replyInfo.decode()
             infoArr: list[str] = replyInfo.split(';')
@@ -63,8 +66,10 @@ def sendNewDay(context: CallbackContext, redisConnect):
                 if infoArr[0] == '0' or len(infoArr[2]) == 0 or infoArr[2] == 'null':
                     continue
                 groupMeg = infoArr[2]
+                groupName = infoArr[1]
         if len(nowGroupUsers) > 0:
-            groupMeg += '\n　\n昨天群里最活跃的人是：'
+            if not onlyView:
+                groupMeg += '\n　\n昨天群里最活跃的人是：'
             i = 1
             for userInfo in nowGroupUsers:
                 userName: str = userInfo[0]
@@ -74,5 +79,6 @@ def sendNewDay(context: CallbackContext, redisConnect):
                 i += 1
                 if i > 5:
                     break
-        print(groupID + ' -> ' + groupMeg)
-        context.bot.send_message(chat_id=int(groupID), text=groupMeg)
+        print(groupName + '(' + groupID + ') -> ' + groupMeg)
+        if not onlyView:
+            context.bot.send_message(chat_id=int(groupID), text=groupMeg)
