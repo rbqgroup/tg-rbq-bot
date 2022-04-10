@@ -29,7 +29,7 @@ def ping(update: Update, context: CallbackContext, starttime: datetime, permissi
     redisConnect1 = redis.Redis(connection_pool=redisPool1)
     alerts: list[str] = [
         'pong',
-        '雅诗电子绒布球 v2.0.0',
+        '雅诗电子绒布球 v2.0.1',
         '服务器时间戳: '+str(t)+' 秒。',
         '距离上次重新启动: '+str(runsec)+' 秒。',
         '可用磁盘: '+getLocalSpace('/')+' MB',

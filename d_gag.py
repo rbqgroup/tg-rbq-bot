@@ -13,7 +13,7 @@ c_GAGTYPES = {
     '深喉口塞': [7, 500],
     '金属开口器': [9, 1000],
     '炮机口塞': [11, 1500],
-    '永久口塞': [65536, 4294967296],
+    '超级口塞': [65536, 4294967296],
 }
 # redis 記錄格式： [[剩餘次數,用具名稱],[參與人員陣列]]
 
@@ -177,27 +177,31 @@ def add(update: Update, context: CallbackContext, redisPool0: redis.ConnectionPo
         infoArrInf = infoArr[0]
         names: list[str] = infoArr[1]
         gagTotal: int = infoArrInf[0]
-        gagName = infoArrInf[1]
-        isRepeat = False
-        for name in names:
-            if name == fromUser:
-                isRepeat = True
-                break
-        if isRepeat:
-            alert = '抱歉， '+fromUser+' 。你已经为 '+toUser + \
-                ' 佩戴过 '+gagName+' 了，请在 '+toUser+' 挣脱后再试。'
+        gagNameFrom: str = infoArrInf[1]
+        if gagName == gagNameFrom:
+            isRepeat = False
+            for name in names:
+                if name == fromUser:
+                    isRepeat = True
+                    break
+            if isRepeat:
+                alert = '抱歉， '+fromUser+' 。你已经为 '+toUser + \
+                    ' 佩戴/加固过 '+gagName+' 了，请在 '+toUser+' 挣脱后再试。'
+            else:
+                gagTotal += selectGagAdd
+                infoArrInf[0] = gagTotal
+                infoArr[0] = infoArrInf
+                names.append(fromUser)
+                infoArr[1] = names
+                gagInfo = json.dumps(infoArr)
+                redisConnect.set(rediskey, gagInfo, ex=600)
+                alert = fromUser+' 加固了 '+toUser+' 的 '+gagName+' ！'
+            alert += '\n'+toUser+' 目前佩戴着被 ' + \
+                (' 、 '.join(names))+' 安装或加固的 '+gagName + \
+                ' ，还需要挣扎 '+str(gagTotal)+' 次才能把它挣脱！'
         else:
-            gagTotal += selectGagAdd
-            infoArrInf[0] = gagTotal
-            infoArr[0] = infoArrInf
-            names.append(fromUser)
-            infoArr[1] = names
-            gagInfo = json.dumps(infoArr)
-            redisConnect.set(rediskey, gagInfo, ex=600)
-            alert = fromUser+' 加固了 '+toUser+' 的 '+gagName+' ！'
-        alert += '\n'+toUser+' 目前佩戴着被 ' + \
-            (' 、 '.join(names))+' 安装或加固的 '+gagName + \
-            ' ，还需要挣扎 '+str(gagTotal)+' 次才能把它挣脱！'
+            alert = '抱歉， '+fromUser+' 。由于 '+toUser + \
+                    ' 已经佩戴 '+gagNameFrom+' 了，已经没有地方再装个 '+gagName+' 啦。请在 '+toUser+' 挣脱后再试。'
     else:
         point: int = rpoint(redisConnect, toUser, 0)
         if point < selectGagNeed:
