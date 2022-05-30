@@ -24,22 +24,35 @@ def getCount(redisConnect, isDelete: bool) -> set[set[int]]:
     keys1: list[bytes] = redisConnect.keys('can_*')
     allGroup: set[set[int]] = {}
     for key1 in keys1:
-        keyStr1: str = key1.decode()
+        keyStr1: str = key1.decode()  # can_-1001234567890
         keyArr1: list[str] = keyStr1.split('_')
-        chatID: int = int(keyArr1[-1])
+        chatID: int = int(keyArr1[-1])  # -1001234567890
         keys2: list[bytes] = redisConnect.keys('len_'+str(chatID)+'_*')
         nowGroupUsers: set[int] = {}
         for key2 in keys2:
-            keyStr2: str = key2.decode()
+            keyStr2: str = key2.decode()  # len_-1001234567890_123456789
             keyArr2: list[str] = keyStr2.split('_')
-            userID: int = int(keyArr2[-1])
+            userID: int = int(keyArr2[-1])  # 123456789
             userinfo: set[str] = d_userinfo.loadUserInfo(redisConnect, userID)
-            redisKey: str = 'len_'+str(chatID)+'_'+str(userID)
-            if userinfo != None and 'username' in userinfo:
-                replyInfo = redisConnect.get(redisKey)
+            redisKey: str = 'len_'+str(chatID)+'_'+str(userID)  # len_123456789
+            if userinfo != None:
+                name = ''
+                if ('is_bot' in userinfo and userinfo['is_bot'] != "False"):
+                    continue
+                if ('first_name' in userinfo and len(userinfo['first_name']) > 0):
+                    name = userinfo['first_name']
+                    if ('last_name' in userinfo and len(userinfo['last_name']) > 0):
+                        name += userinfo['last_name']
+                if (len(name) == 0 and 'username' in userinfo and len(userinfo['username']) > 0):
+                    name = userinfo['username']
+                if (len(name) == 0):
+                    continue
+                if (len(name) == 0 and 'id' in userinfo): # DISABLE
+                    name = userinfo['id']
+                replyInfo = redisConnect.get(redisKey)  # 16
                 if replyInfo != None and len(replyInfo) > 0:
                     userChatCount = int(replyInfo)
-                    nowGroupUsers[userinfo['username']] = userChatCount
+                    nowGroupUsers[name] = userChatCount
             if redisConnect.exists(redisKey) > 0:
                 if isDelete:
                     redisConnect.delete(redisKey)
@@ -74,7 +87,7 @@ def sendNewDay(context: CallbackContext, redisConnect):
             for userInfo in nowGroupUsers:
                 userName: str = userInfo[0]
                 chatCount: int = userInfo[1]
-                groupMeg += '\nTOP '+str(i)+' : @' + \
+                groupMeg += '\nTOP '+str(i)+' : ' + \
                     userName+' ('+str(chatCount)+')'
                 i += 1
                 if i > 5:

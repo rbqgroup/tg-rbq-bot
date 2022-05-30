@@ -25,7 +25,14 @@ def loadUserInfo(redisConnect, userID: int) -> list[str]:
     """獲取記錄的使用者資訊"""
     redisKey: str = 'usr_' + str(userID)
     replyInfo = redisConnect.get(redisKey)
+    # {
+    #     "is_bot": "0",
+    #     "language_code": "zh-hans",
+    #     "first_name": "神楽坂雅詩",
+    #     "username": "username"
+    # }
     if replyInfo != None and len(replyInfo) > 0:
         replyInfo = replyInfo.decode()
         from_user: set[str] = json.loads(replyInfo)
         return from_user
+    return None
