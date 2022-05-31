@@ -25,7 +25,7 @@ starttime = datetime.datetime.now()
 
 c_TGTOKEN = '*:*-*'
 c_REDIS = ['127.0.0.1', 6379, '*']
-c_SUPERMGRID = 0
+c_SUPERMGRID = []
 c_REDISDB = [10, 11]  # 配置庫
 c_CHAR: list[list[str]] = [
     ['呜', '哈', '啊', '唔', '嗯', '呃', '哦', '嗷', '呕', '噢', '喔'], ['！', '？', '…', '，']]
@@ -56,7 +56,10 @@ def ignoreMessage(msg: str):
 
 def isPermission(chatID: int, chatTitle: str) -> bool:
     """檢查該會話是否有許可權使用此機器人"""
-    if ignoreMessage(str(chatID) + ' ' + chatTitle):
+    title = ''
+    if chatTitle != None:
+        title = chatTitle
+    if ignoreMessage(str(chatID) + ' ' + title):
         return False
     redisConnect = redis.Redis(connection_pool=redisPool0)
     rediskey = 'can_' + str(chatID)
@@ -67,9 +70,6 @@ def isPermission(chatID: int, chatTitle: str) -> bool:
         passInfoArr: list[str] = passInfoStr.split(";")
         if len(passInfoArr) > 0 and passInfoArr[0] == '1':
             return True
-    title = ''
-    if chatTitle != None:
-        title = chatTitle
     print('不能提供服务 (' + str(chatID) + ') '+title)
     return False
 
@@ -90,14 +90,10 @@ def timing(context: CallbackContext):
     """每幾秒觸發一次"""
     global oldDay
     t = datetime.datetime.now(pytz.timezone('Asia/Shanghai'))
-    redisConnect = redis.Redis(connection_pool=redisPool0)
-    d_verify.timeChk(context, redisConnect)
-    if oldDay > 0:
-        if t.hour == 0 and t.minute == 0 and oldDay != t.day:
-            oldDay = t.day
-            d_chatcount.sendNewDay(context, redisConnect)
-    else:
+    d_verify.timeChk(context, redisPool0)
+    if t.hour == 0 and t.minute == 0 and oldDay != t.day:
         oldDay = t.day
+        d_chatcount.sendNewDay(context, redisConnect)
     redisConnect.close()
     # context.bot.send_message(chat_id='@YOUR CHANELL ID',text='job executed')
 
@@ -107,24 +103,30 @@ jobQueue.run_repeating(timing, interval=5.0, first=5.0)
 
 def echo(update: Update, context: CallbackContext):
     """收到的所有非命令文字訊息"""
+    print(update)
     if update == None or update.message == None or update.message.chat == None or update.message.from_user == None or update.message.from_user.username == None or update.message.from_user.is_bot == None or update.message.from_user.is_bot:
         return
-    if update.message.from_user.id == c_SUPERMGRID:
+    if update.message.from_user.id in c_SUPERMGRID:
         cmdTextArr: str = update.message.text.split(';;')
         if len(cmdTextArr) >= 3 and cmdTextArr[0] == 'msg':
             context.bot.send_message(chat_id=int(
                 cmdTextArr[1]), text=cmdTextArr[2])
-        return
+            return
     if isPermission(update.message.chat.id, update.message.chat.title) == False:
+        print('N3')
         return
     text: str = update.message.text
     if len(text) == 0 or text[0] == '/':
+        print('N4')
         return
     if d_verify.chatChk(update, context, redisPool0):
+        print('N5')
         return
     if d_gag.chk(update, context, redisPool0, c_CHAR):
+        print('N6')
         return
     d_chatcount.updateCount(update, redisPool0)
+    print('777')
     d_chat.chat(update, context, redisPool1)
 
 
@@ -263,3 +265,4 @@ print('初始化完成。')
 
 updater.start_polling()
 updater.idle()
+
